@@ -16,6 +16,6 @@ MONGO_ROOT_USERNAME=admin
 MONGO_ROOT_PASSWORD=your_password
 
 Run:
+docker-compose up -d --build
 
-bashdocker-compose up -d --build
 Application runs on http://localhost:8080
