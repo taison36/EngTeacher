@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: "EngTeacher"
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+  mongodb:
+    uri: ${SPRING_DATA_MONGODB_URI}
+  threads:
+    virtual:
+      enabled: true
