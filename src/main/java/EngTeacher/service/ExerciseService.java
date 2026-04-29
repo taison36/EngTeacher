@@ -28,10 +28,9 @@ public class ExerciseService {
 
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
-    private final UserRepository userRepository;
 
-    public List<Exercise> createExercises(User user, Session session) {
-        List<Phrase> phrases = choosePhrases(user, session);
+    public List<Exercise> createExercises(User user, final int neededExerciseQuantity) {
+        List<Phrase> phrases = choosePhrases(user, neededExerciseQuantity);
 
         if (phrases.isEmpty()) {
             throw new ImproperUsageException("No need to create exercises. Max is already reached");
@@ -64,8 +63,6 @@ public class ExerciseService {
                                 .build();
                     })
                     .toList();
-            session.getExercises().addAll(createdExercises);
-            userRepository.save(user);
 
             return createdExercises;
         } catch (JacksonException e) {
@@ -73,9 +70,7 @@ public class ExerciseService {
         }
     }
 
-    private List<Phrase> choosePhrases(final User user, final Session session) {
-        int neededExercises = AppConstants.MAX_NUMBER_EXERCISES - session.getExercises().size();
-
+    private List<Phrase> choosePhrases(final User user, final int neededExerciseQuantity) {
         Random random = new Random();
 
         return user.getPhrases().stream()
@@ -85,7 +80,7 @@ public class ExerciseService {
                     int weight2 = 100 - p2.getUnderstandingRate() + random.nextInt(20);
                     return Integer.compare(weight2, weight1);
                 })
-                .limit(neededExercises)
+                .limit(neededExerciseQuantity)
                 .collect(Collectors.toList());
     }
 

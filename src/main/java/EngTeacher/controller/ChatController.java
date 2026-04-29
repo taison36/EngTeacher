@@ -4,7 +4,7 @@ import EngTeacher.dto.ChatMessageRequestDto;
 import EngTeacher.dto.ChatMessageResponseDto;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
-import EngTeacher.service.agent.ChatService;
+import EngTeacher.service.ChatService;
 import EngTeacher.service.SessionService;
 import EngTeacher.service.UserService;
 import lombok.RequiredArgsConstructor;

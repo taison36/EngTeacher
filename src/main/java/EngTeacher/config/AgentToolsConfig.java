@@ -12,7 +12,7 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
-public class AgentFunctions {
+public class AgentToolsConfig {
 
     private final ExerciseService exerciseService;
 

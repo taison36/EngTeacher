@@ -1,12 +1,13 @@
-package EngTeacher.service.agent;
+package EngTeacher.service;
 
 import EngTeacher.dto.ChatMessageResponseDto;
-import EngTeacher.model.ChatMessage;
 import EngTeacher.model.Exercise;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
 import EngTeacher.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -30,27 +31,37 @@ public class ChatService {
     private final UserRepository userRepository;
     private final List<ToolCallback> tools;
     private final ToolCallingManager toolCallingManager;
+    private final ChatMemory chatMemory;
 
     public ChatMessageResponseDto processMessage(User user, Session session, String userMessage) {
 
+        String conversationId = session.getId();
+
         ToolCallingChatOptions chatOptions = ToolCallingChatOptions.builder()
-                .toolCallbacks(tools)
-                .internalToolExecutionEnabled(false)
-                .build();
+            .toolCallbacks(tools)
+            .internalToolExecutionEnabled(false)
+            .build();
 
         SystemMessage systemMessage = new SystemMessage(buildSystemPrompt(session));
         UserMessage userMsg = new UserMessage(userMessage);
+        chatMemory.add(conversationId, List.of(systemMessage, userMsg));
 
-        Prompt prompt = new Prompt(List.of(systemMessage, userMsg), chatOptions);
-
+        Prompt prompt = new Prompt(chatMemory.get(conversationId), chatOptions);
         ChatResponse chatResponse = chatModel.call(prompt);
+
+        chatMemory.add(conversationId, chatResponse.getResult().getOutput());
 
         while (chatResponse.hasToolCalls()) {
             ToolExecutionResult toolResult = toolCallingManager.executeToolCalls(prompt, chatResponse);
 
-            prompt = new Prompt(toolResult.conversationHistory(), chatOptions);
+            List<Message> toolMessages = toolResult.conversationHistory();
+            Message lastToolMessage = toolMessages.getLast();
+            chatMemory.add(conversationId, lastToolMessage);
 
+            prompt = new Prompt(chatMemory.get(conversationId), chatOptions);
             chatResponse = chatModel.call(prompt);
+
+            chatMemory.add(conversationId, chatResponse.getResult().getOutput());
         }
 
         userRepository.save(user);
@@ -58,22 +69,18 @@ public class ChatService {
         String finalResponse = chatResponse.getResult().getOutput().getText();
 
         return ChatMessageResponseDto.builder()
-                .agentResponse(finalResponse)
-                .exercises(session.getExercises())
-                .build();
+            .agentResponse(finalResponse)
+            .exercises(session.getExercises())
+            .build();
     }
 
     private String buildSystemPrompt(Session session) {
-        String lastAgentMessage = getLastAgentMessage(session);
         String exercisesFormatted = formatExercises(session.getExercises());
 
         return """
                 You are a language learning assistant helping users practice English phrases.
                 
                 CONTEXT:
-                Last agent message:
-                %s
-                
                 Current exercises:
                 %s
                 
@@ -101,7 +108,7 @@ public class ChatService {
                 User: "I bought a tin of beans. What does 'omit' mean?"
                 → Call: markExercisesCorrect([{userId: "user123", exerciseId: "ex1"}])
                 → Respond: "Great job using 'a tin of'! Regarding 'omit'..."
-                """.formatted(lastAgentMessage, exercisesFormatted);
+                """.formatted(exercisesFormatted);
     }
 
     private String formatExercises(List<Exercise> exercises) {
@@ -113,18 +120,5 @@ public class ChatService {
                         ex.getQuestion()
                 ))
                 .collect(Collectors.joining("\n"));
-    }
-
-    private String getLastAgentMessage(Session session) {
-        List<ChatMessage> messages = session.getMessages();
-
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            ChatMessage msg = messages.get(i);
-            if (msg.getMessageType() == ChatMessage.MessageType.AGENT) {
-                return msg.getContent();
-            }
-        }
-
-        return "No previous agent message";
     }
 }

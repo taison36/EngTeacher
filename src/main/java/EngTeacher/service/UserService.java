@@ -36,4 +36,7 @@ public class UserService {
         user.getPhrases().addAll(phrases);
         return userRepository.save(user);
     }
+    public User save(final User user) {
+        return userRepository.save(user);
+    }
 }

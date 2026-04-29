@@ -42,7 +42,9 @@ class UserController {
     @PostMapping("{userId}/session/")
     public Session createSession(@PathVariable String userId) {
         User user = userService.getUser(userId);
-        return sessionService.createSession(user);
+        Session createdSession = sessionService.createSession(user);
+        userService.save(user);
+        return createdSession;
     }
 
     @PostMapping("{userId}/session/{sessionId}/exercise")
@@ -50,6 +52,10 @@ class UserController {
                                           @PathVariable String sessionId) {
         User user = userService.getUser(userId);
         Session session= sessionService.getSession(user, sessionId);
-        return exerciseService.createExercises(user, session);
+        final int neededExerciseQuantity = sessionService.neededExerciseQuantity(session);
+        List<Exercise> createdExercises = exerciseService.createExercises(user, neededExerciseQuantity);
+        session.getExercises().addAll(createdExercises);
+        userService.save(user);
+        return createdExercises;
     }
 }
