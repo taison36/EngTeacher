@@ -3,7 +3,7 @@ package EngTeacher.tools;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.stereotype.Component;
-import EngTeacher.dto.agent.AgentDto.IncorrectExerciseAttempt;
+import EngTeacher.dto.agent.ExerciseAttempt.Incorrect;
 import EngTeacher.service.ExerciseService;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.core.JacksonException;
@@ -37,9 +37,9 @@ public class IncorrectExerciseTool implements ToolCallback {
             });
 
             // Extract attempts array
-            List<IncorrectExerciseAttempt> attempts = objectMapper.convertValue(
+            List<Incorrect> attempts = objectMapper.convertValue(
                     input.get("attempts"),
-                    new TypeReference<List<IncorrectExerciseAttempt>>() {
+                    new TypeReference<List<Incorrect>>() {
                     }
             );
 

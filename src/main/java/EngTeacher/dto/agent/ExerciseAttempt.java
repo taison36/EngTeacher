@@ -1,14 +1,14 @@
 package EngTeacher.dto.agent;
 
-public record AgentDto() {
+public record ExerciseAttempt() {
 
-    public record CorrectExerciseAttempt(
+    public record Correct(
             String userId,
             String exerciseId
     ) {
     }
 
-    public record IncorrectExerciseAttempt(
+    public record Incorrect(
             String userId,
             String exerciseId,
             String newQuestion

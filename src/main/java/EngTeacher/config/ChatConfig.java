@@ -20,7 +20,6 @@ public class ChatConfig {
     public ChatMemory chatMemory(MongoChatMemoryRepository chatMemoryRepository) {
         return MessageWindowChatMemory.builder()
             .chatMemoryRepository(chatMemoryRepository)
-            .maxMessages(20)
             .build();
     }
 }

@@ -1,6 +1,6 @@
 package EngTeacher.tools;
 
-import EngTeacher.dto.agent.AgentDto.*;
+import EngTeacher.dto.agent.ExerciseAttempt.*;
 import EngTeacher.service.ExerciseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.ToolCallback;
@@ -35,7 +35,7 @@ public class CompleteExerciseTool implements ToolCallback {
             Map<String, Object> input = objectMapper.readValue(toolInput, new TypeReference<>() {
             });
 
-            List<CorrectExerciseAttempt> attempts = objectMapper.convertValue(
+            List<Correct> attempts = objectMapper.convertValue(
                     input.get("attempts"),
                     new TypeReference<>() {
                     }

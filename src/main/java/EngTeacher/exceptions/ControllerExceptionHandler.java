@@ -22,8 +22,8 @@ public class ControllerExceptionHandler {
                 ));
     }
 
-    @ExceptionHandler(ImproperUsageException.class)
-    public ResponseEntity<?> handleNotFound(ImproperUsageException ex) {
+    @ExceptionHandler(ImproperApiUsageException.class)
+    public ResponseEntity<?> handleNotFound(ImproperApiUsageException ex) {
         return ResponseEntity
                 .status(404)
                 .body(Map.of(

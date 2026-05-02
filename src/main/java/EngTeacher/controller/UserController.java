@@ -1,10 +1,11 @@
 package EngTeacher.controller;
 
+import EngTeacher.dto.ChatMessageDto;
 import EngTeacher.model.Exercise;
 import EngTeacher.model.Phrase;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
-import EngTeacher.service.ExerciseService;
+import EngTeacher.service.ExerciseGenerationService;
 import EngTeacher.service.SessionService;
 import EngTeacher.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ class UserController {
 
     private final UserService userService;
     private final SessionService sessionService;
-    private final ExerciseService exerciseService;
+    private final ExerciseGenerationService exerciseGenerationService;
 
     @PostMapping("/create")
     public User createUser(@RequestBody final String name) {
@@ -32,11 +33,17 @@ class UserController {
         return userService.addPhrases(userId, phrases);
     }
 
-    @GetMapping("{userId}/session/")
+    @GetMapping("{userId}/session/{sessionId}")
     public Session getSession(@PathVariable String userId,
                               @PathVariable String sessionId) {
         User user = userService.getUser(userId);
         return sessionService.getSession(user, sessionId);
+    }
+
+    @GetMapping("{userId}/session/{sessionId}/messages")
+    public List<ChatMessageDto> getSessionMessages(@PathVariable String userId,
+                                                   @PathVariable String sessionId) {
+        return sessionService.getMessages(sessionId);
     }
 
     @PostMapping("{userId}/session/")
@@ -51,9 +58,9 @@ class UserController {
     public List<Exercise> createExercises(@PathVariable String userId,
                                           @PathVariable String sessionId) {
         User user = userService.getUser(userId);
-        Session session= sessionService.getSession(user, sessionId);
+        Session session = sessionService.getSession(user, sessionId);
         final int neededExerciseQuantity = sessionService.neededExerciseQuantity(session);
-        List<Exercise> createdExercises = exerciseService.createExercises(user, neededExerciseQuantity);
+        List<Exercise> createdExercises = exerciseGenerationService.generate(user, neededExerciseQuantity);
         session.getExercises().addAll(createdExercises);
         userService.save(user);
         return createdExercises;
