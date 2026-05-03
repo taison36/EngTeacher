@@ -7,28 +7,39 @@ import EngTeacher.model.User;
 import EngTeacher.model.UserSettings;
 import EngTeacher.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public User getUser(final String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(String.format("User %s was not found in DB", userId)));
     }
 
-    public User getUserByName(final String name) {
-        return userRepository.findByName(name)
-                .orElseThrow(() -> new NotFoundException(String.format("User with name '%s' was not found", name)));
+    public Optional<User> findByName(final String name) {
+        return userRepository.findByName(name);
     }
 
-    public User createUser(final String name) {
-        return userRepository.save(User.builder().name(name).build());
+    public User createUser(final String name, final String rawPassword) {
+        return userRepository.save(User.builder()
+                .name(name)
+                .passwordHash(passwordEncoder.encode(rawPassword))
+                .settings(UserSettings.builder().build())
+                .build()
+        );
+    }
+
+    public boolean checkPassword(final User user, final String rawPassword) {
+        return passwordEncoder.matches(rawPassword, user.getPasswordHash());
     }
 
     public User addPhrases(final User user, final List<AddPhraseDto> dtos) {

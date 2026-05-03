@@ -44,29 +44,30 @@ public class ChatService {
                 .internalToolExecutionEnabled(false)
                 .build();
 
+        List<Message> agentLoopMemory = new ArrayList<>(chatMemory.get(conversationId));
         SystemMessage systemMessage = new SystemMessage(buildSystemPrompt(user.getId(), session));
         UserMessage userMsg = new UserMessage(userMessage);
-        chatMemory.add(conversationId, List.of(systemMessage, userMsg));
+        agentLoopMemory.addAll(List.of(systemMessage, userMsg));
 
-        List<Message> localHistory = new ArrayList<>(chatMemory.get(conversationId));
-        Prompt prompt = new Prompt(localHistory, chatOptions);
+        Prompt prompt = new Prompt(agentLoopMemory, chatOptions);
         ChatResponse chatResponse = chatModel.call(prompt);
 
         while (chatResponse.hasToolCalls()) {
             ToolExecutionResult toolResult = toolCallingManager.executeToolCalls(prompt, chatResponse);
             // ChatMemory cant store messages from TOOLS. Spring said, it is gonna be fixed.
-            localHistory = new ArrayList<>(toolResult.conversationHistory());
+            agentLoopMemory = new ArrayList<>(toolResult.conversationHistory());
 
-            prompt = new Prompt(localHistory, chatOptions);
+            prompt = new Prompt(agentLoopMemory, chatOptions);
             chatResponse = chatModel.call(prompt);
         }
+
+        String finalResponse = chatResponse.getResult().getOutput().getText();
+        chatMemory.add(conversationId, userMsg);
+        chatMemory.add(conversationId, chatResponse.getResult().getOutput());
 
         user = userService.getUser(user.getId());
         session = sessionService.getSession(user, session.getId());
         List<Exercise> updatedExercises = session.getExercises();
-
-        String finalResponse = chatResponse.getResult().getOutput().getText();
-        chatMemory.add(conversationId, chatResponse.getResult().getOutput());
 
         return ChatMessageResponseDto.builder()
                 .agentResponse(finalResponse)
@@ -96,7 +97,7 @@ public class ChatService {
                 2. ANSWER questions directly:
                    - If the user asks about grammar or phrase meaning, answer without calling any tool.
                 
-                3. RESPOND naturally after each tool call, incorporating the result into the conversation.
+                3. RESPOND naturally and friendly after each tool call, incorporating the result into the conversation. Try to not repeat yourself.
                 
                 4. Skip exercises that are already marked as done.
                 

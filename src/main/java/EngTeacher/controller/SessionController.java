@@ -4,6 +4,7 @@ import EngTeacher.dto.ChatMessageDto;
 import EngTeacher.model.Exercise;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
+import EngTeacher.security.AuthUtils;
 import EngTeacher.service.ExerciseGenerationService;
 import EngTeacher.service.SessionService;
 import EngTeacher.service.UserService;
@@ -23,6 +24,7 @@ public class SessionController {
 
     @PostMapping
     public Session createSession(@PathVariable String userId) {
+        AuthUtils.requireSelf(userId);
         User user = userService.getUser(userId);
         Session createdSession = sessionService.createSession(user);
         userService.save(user);
@@ -32,6 +34,7 @@ public class SessionController {
     @GetMapping("/{sessionId}")
     public Session getSession(@PathVariable String userId,
                               @PathVariable String sessionId) {
+        AuthUtils.requireSelf(userId);
         User user = userService.getUser(userId);
         return sessionService.getSession(user, sessionId);
     }
@@ -39,6 +42,7 @@ public class SessionController {
     @GetMapping("/{sessionId}/messages")
     public List<ChatMessageDto> getSessionMessages(@PathVariable String userId,
                                                    @PathVariable String sessionId) {
+        AuthUtils.requireSelf(userId);
         return sessionService.getMessages(sessionId);
     }
 
@@ -46,6 +50,7 @@ public class SessionController {
     @PostMapping("/{sessionId}/exercise")
     public List<Exercise> createExercises(@PathVariable String userId,
                                           @PathVariable String sessionId) {
+        AuthUtils.requireSelf(userId);
         User user = userService.getUser(userId);
         Session session = sessionService.getSession(user, sessionId);
 

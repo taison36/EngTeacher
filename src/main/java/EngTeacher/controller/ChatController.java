@@ -4,6 +4,7 @@ import EngTeacher.dto.ChatMessageRequestDto;
 import EngTeacher.dto.ChatMessageResponseDto;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
+import EngTeacher.security.AuthUtils;
 import EngTeacher.service.ChatService;
 import EngTeacher.service.SessionService;
 import EngTeacher.service.UserService;
@@ -21,6 +22,7 @@ public class ChatController {
 
     @PostMapping("/message")
     public ChatMessageResponseDto processMessage(@RequestBody final ChatMessageRequestDto chatMessageRequestDto) {
+        AuthUtils.requireSelf(chatMessageRequestDto.getUserId());
         User user = userService.getUser(chatMessageRequestDto.getUserId());
         Session session = sessionService.getSession(user, chatMessageRequestDto.getSessionId());
         return chatService.processMessage(user, session, chatMessageRequestDto.getMessage());

@@ -1,8 +1,10 @@
 package EngTeacher.controller;
 
 import EngTeacher.dto.AddPhraseDto;
+import EngTeacher.model.Phrase;
 import EngTeacher.model.User;
 import EngTeacher.model.UserSettings;
+import EngTeacher.security.AuthUtils;
 import EngTeacher.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,30 +18,30 @@ class UserController {
 
     private final UserService userService;
 
-    @PostMapping("/create")
-    public User createUser(@RequestBody final String name) {
-        return userService.createUser(name);
-    }
-
     @GetMapping("/{userId}")
     public User getUser(@PathVariable final String userId) {
+        AuthUtils.requireSelf(userId);
         return userService.getUser(userId);
-    }
-
-    @GetMapping("/by-name/{name}")
-    public User getUserByName(@PathVariable final String name) {
-        return userService.getUserByName(name);
     }
 
     @PostMapping("/{userId}/phrases")
     public User addPhrases(@PathVariable final String userId,
                            @RequestBody final List<AddPhraseDto> phrases) {
+        AuthUtils.requireSelf(userId);
         User user = userService.getUser(userId);
         return userService.addPhrases(user, phrases);
     }
 
+    @GetMapping("/{userId}/phrases")
+    public List<Phrase> getPhrases(@PathVariable final String userId) {
+        AuthUtils.requireSelf(userId);
+        User user = userService.getUser(userId);
+        return user.getPhrases();
+    }
+
     @GetMapping("/{userId}/settings")
     public UserSettings getSettings(@PathVariable final String userId) {
+        AuthUtils.requireSelf(userId);
         User user = userService.getUser(userId);
         return userService.getSettings(user);
     }
@@ -47,6 +49,7 @@ class UserController {
     @PutMapping("/{userId}/settings")
     public UserSettings updateSettings(@PathVariable final String userId,
                                        @RequestBody final UserSettings settings) {
+        AuthUtils.requireSelf(userId);
         User user = userService.getUser(userId);
         return userService.updateSettings(user, settings);
     }
