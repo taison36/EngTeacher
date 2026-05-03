@@ -1,12 +1,8 @@
 package EngTeacher.controller;
 
-import EngTeacher.dto.ChatMessageDto;
-import EngTeacher.model.Exercise;
-import EngTeacher.model.Phrase;
-import EngTeacher.model.Session;
+import EngTeacher.dto.AddPhraseDto;
 import EngTeacher.model.User;
-import EngTeacher.service.ExerciseGenerationService;
-import EngTeacher.service.SessionService;
+import EngTeacher.model.UserSettings;
 import EngTeacher.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -19,50 +15,39 @@ import java.util.List;
 class UserController {
 
     private final UserService userService;
-    private final SessionService sessionService;
-    private final ExerciseGenerationService exerciseGenerationService;
 
     @PostMapping("/create")
     public User createUser(@RequestBody final String name) {
         return userService.createUser(name);
     }
 
+    @GetMapping("/{userId}")
+    public User getUser(@PathVariable final String userId) {
+        return userService.getUser(userId);
+    }
+
+    @GetMapping("/by-name/{name}")
+    public User getUserByName(@PathVariable final String name) {
+        return userService.getUserByName(name);
+    }
+
     @PostMapping("/{userId}/phrases")
     public User addPhrases(@PathVariable final String userId,
-                           @RequestBody final List<Phrase> phrases) {
-        return userService.addPhrases(userId, phrases);
-    }
-
-    @GetMapping("{userId}/session/{sessionId}")
-    public Session getSession(@PathVariable String userId,
-                              @PathVariable String sessionId) {
+                           @RequestBody final List<AddPhraseDto> phrases) {
         User user = userService.getUser(userId);
-        return sessionService.getSession(user, sessionId);
+        return userService.addPhrases(user, phrases);
     }
 
-    @GetMapping("{userId}/session/{sessionId}/messages")
-    public List<ChatMessageDto> getSessionMessages(@PathVariable String userId,
-                                                   @PathVariable String sessionId) {
-        return sessionService.getMessages(sessionId);
-    }
-
-    @PostMapping("{userId}/session/")
-    public Session createSession(@PathVariable String userId) {
+    @GetMapping("/{userId}/settings")
+    public UserSettings getSettings(@PathVariable final String userId) {
         User user = userService.getUser(userId);
-        Session createdSession = sessionService.createSession(user);
-        userService.save(user);
-        return createdSession;
+        return userService.getSettings(user);
     }
 
-    @PostMapping("{userId}/session/{sessionId}/exercise")
-    public List<Exercise> createExercises(@PathVariable String userId,
-                                          @PathVariable String sessionId) {
+    @PutMapping("/{userId}/settings")
+    public UserSettings updateSettings(@PathVariable final String userId,
+                                       @RequestBody final UserSettings settings) {
         User user = userService.getUser(userId);
-        Session session = sessionService.getSession(user, sessionId);
-        final int neededExerciseQuantity = sessionService.neededExerciseQuantity(session);
-        List<Exercise> createdExercises = exerciseGenerationService.generate(user, neededExerciseQuantity);
-        session.getExercises().addAll(createdExercises);
-        userService.save(user);
-        return createdExercises;
+        return userService.updateSettings(user, settings);
     }
 }

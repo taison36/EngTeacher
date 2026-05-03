@@ -16,7 +16,8 @@ public class User {
     private String id;
     private String name;
     @Builder.Default
-    private List<Phrase> phrases   = new ArrayList<>();
+    private List<Phrase> phrases = new ArrayList<>();
     @Builder.Default
     private List<Session> sessions = new ArrayList<>();
+    private UserSettings settings;
 }

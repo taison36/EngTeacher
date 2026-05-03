@@ -18,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,11 +29,11 @@ public class ExerciseGenerationService {
     private final ObjectMapper objectMapper;
 
     public List<Exercise> generate(User user, final int neededExerciseQuantity) {
-        List<Phrase> phrases = choosePhrases(user, neededExerciseQuantity);
-
-        if (phrases.isEmpty()) {
+        if (neededExerciseQuantity <= 0) {
             throw new ImproperApiUsageException("No need to create exercises. Max is already reached");
         }
+
+        List<Phrase> phrases = choosePhrases(user, neededExerciseQuantity);
 
         String prompt = buildGenerateExercisesPrompt(phrases);
 
@@ -54,6 +55,7 @@ public class ExerciseGenerationService {
                                 .orElseThrow();
 
                         return Exercise.builder()
+                                .id(UUID.randomUUID().toString())
                                 .question(dto.getQuestion())
                                 .phrase(matchingPhrase)
                                 .build();
@@ -87,23 +89,26 @@ public class ExerciseGenerationService {
         String phrasesJsonString = objectMapper.writeValueAsString(phrasesJson);
 
         return """
-                You are a language learning assistant. Create one exercise question for each phrase.
+                You are a language learning assistant. Create one fill-in-the-blank exercise for each phrase.
                 
                 Requirements:
-                - Generate realistic scenarios where the student must USE the target phrase in their answer
-                - Questions should NOT contain the phrase itself
-                - Make exercises conversational and practical
+                
+                Each exercise must be a single sentence with exactly one blank written as "..."
+                The correct answer is the full target phrase, which fits naturally into the blank
+                Do NOT include the phrase in the sentence itself
+                Sentences should be realistic, conversational, and practical
+                Ensure the sentence clearly implies the target phrase
                 
                 Return a valid JSON array with this exact structure:
                 [
-                  {"phrase": "a tin of", "question": "You're at the grocery store buying food for your cat. What do you ask for?"},
-                  {"phrase": "enjoy yourself", "question": "Your friend is going on vacation. What do you tell them?"}
+                {"phrase": "a tin of", "question": "I went to the store to buy ... tuna for dinner."},
+                {"phrase": "enjoy yourself", "question": "Have a great time at the party and ...!"}
                 ]
                 
                 Phrases as JSON:
                 %s
                 
-                Return ONLY the JSON array, no markdown, no code blocks, no explanations.
+                Return ONLY the JSON array. No explanations, no markdown, no extra text.
                 """.formatted(phrasesJsonString);
     }
 }

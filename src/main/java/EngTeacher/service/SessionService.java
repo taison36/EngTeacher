@@ -1,10 +1,11 @@
 package EngTeacher.service;
 
-import EngTeacher.constant.AppConstants;
 import EngTeacher.dto.ChatMessageDto;
 import EngTeacher.exceptions.NotFoundException;
+import EngTeacher.model.Exercise;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
+import EngTeacher.model.UserSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
@@ -32,15 +33,22 @@ public class SessionService {
         final Session createdSession = Session.builder()
                 .id(UUID.randomUUID().toString())
                 .build();
-        final int neededExerciseQuantity = neededExerciseQuantity(createdSession);
+        final int neededExerciseQuantity = neededExerciseQuantity(createdSession, user.getSettings());
         final var exercises = exerciseGenerationService.generate(user, neededExerciseQuantity);
         createdSession.getExercises().addAll(exercises);
         user.getSessions().add(createdSession);
         return createdSession;
     }
 
-    public int neededExerciseQuantity(final Session session) {
-        return AppConstants.MAX_NUMBER_EXERCISES - session.getExercises().size();
+    public int deleteDoneExercises(Session session) {
+        final int initialSize = session.getExercises().size();
+        List<Exercise> uncomplete = session.getExercises().stream().filter(e -> !e.isDone()).toList();
+        session.setExercises(uncomplete);
+        return initialSize - uncomplete.size();
+    }
+
+    public int neededExerciseQuantity(final Session session, final UserSettings userSettings) {
+        return userSettings.getMaxNumberExercises() - session.getExercises().size();
     }
 
     public List<ChatMessageDto> getMessages(final String sessionId) {

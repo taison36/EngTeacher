@@ -32,18 +32,15 @@ public class IncorrectExerciseTool implements ToolCallback {
     @Override
     public String call(String toolInput) {
         try {
-            // Parse JSON input
             Map<String, Object> input = objectMapper.readValue(toolInput, new TypeReference<>() {
             });
 
-            // Extract attempts array
             List<Incorrect> attempts = objectMapper.convertValue(
                     input.get("attempts"),
-                    new TypeReference<List<Incorrect>>() {
+                    new TypeReference<>() {
                     }
             );
 
-            // Execute
             exerciseService.markIncorrect(attempts);
 
             return "Updated " + attempts.size() + " exercises as incorrect with new questions";

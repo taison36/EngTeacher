@@ -6,8 +6,8 @@ import lombok.Data;
 @Builder
 @Data
 public class Phrase {
-    private final String id;
-    private final String content;
+    private String id;
+    private String content;
     @Builder.Default
     private int understandingRate = 0;
     @Builder.Default
