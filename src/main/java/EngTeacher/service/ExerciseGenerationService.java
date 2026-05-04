@@ -6,6 +6,8 @@ import EngTeacher.exceptions.ImproperApiUsageException;
 import EngTeacher.model.Exercise;
 import EngTeacher.model.Phrase;
 import EngTeacher.model.User;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -27,8 +29,33 @@ public class ExerciseGenerationService {
 
     private final ChatModel chatModel;
     private final ObjectMapper objectMapper;
+    private final ObservationRegistry observationRegistry;
 
     public List<Exercise> generate(User user, final int neededExerciseQuantity) {
+        Observation observation = Observation.createNotStarted("engteacher.exercise.generation", observationRegistry)
+                .lowCardinalityKeyValue("langfuse.tags", "feature:exercise-generation")
+                .highCardinalityKeyValue("langfuse.user.id", user.getId())
+                .highCardinalityKeyValue("langfuse.observation.input",
+                        "Generate %d exercises for user %s".formatted(neededExerciseQuantity, user.getId()))
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            List<Exercise> result = doGenerate(user, neededExerciseQuantity);
+            String outputSummary = result.stream()
+                    .map(e -> e.getPhrase().getContent())
+                    .collect(Collectors.joining(", "));
+            observation.highCardinalityKeyValue("langfuse.observation.output",
+                    "Generated %d exercises for: %s".formatted(result.size(), outputSummary));
+            return result;
+        } catch (Exception e) {
+            observation.error(e);
+            throw e;
+        } finally {
+            observation.stop();
+        }
+    }
+
+    private List<Exercise> doGenerate(User user, final int neededExerciseQuantity) {
         if (neededExerciseQuantity <= 0) {
             throw new ImproperApiUsageException("No need to create exercises. Max is already reached");
         }

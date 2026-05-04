@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/user/{userId}/session")
+@RequestMapping("/api/session")
 @RequiredArgsConstructor
 public class SessionController {
 
@@ -23,35 +23,27 @@ public class SessionController {
     private final ExerciseGenerationService exerciseGenerationService;
 
     @PostMapping
-    public Session createSession(@PathVariable String userId) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
+    public Session createSession() {
+        User user = userService.getUser(AuthUtils.currentUserId());
         Session createdSession = sessionService.createSession(user);
         userService.save(user);
         return createdSession;
     }
 
     @GetMapping("/{sessionId}")
-    public Session getSession(@PathVariable String userId,
-                              @PathVariable String sessionId) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
+    public Session getSession(@PathVariable String sessionId) {
+        User user = userService.getUser(AuthUtils.currentUserId());
         return sessionService.getSession(user, sessionId);
     }
 
     @GetMapping("/{sessionId}/messages")
-    public List<ChatMessageDto> getSessionMessages(@PathVariable String userId,
-                                                   @PathVariable String sessionId) {
-        AuthUtils.requireSelf(userId);
+    public List<ChatMessageDto> getSessionMessages(@PathVariable String sessionId) {
         return sessionService.getMessages(sessionId);
     }
 
-
     @PostMapping("/{sessionId}/exercise")
-    public List<Exercise> createExercises(@PathVariable String userId,
-                                          @PathVariable String sessionId) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
+    public List<Exercise> createExercises(@PathVariable String sessionId) {
+        User user = userService.getUser(AuthUtils.currentUserId());
         Session session = sessionService.getSession(user, sessionId);
 
         sessionService.deleteDoneExercises(session);

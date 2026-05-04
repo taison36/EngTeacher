@@ -4,7 +4,8 @@ import EngTeacher.dto.ChatMessageResponseDto;
 import EngTeacher.model.Exercise;
 import EngTeacher.model.Session;
 import EngTeacher.model.User;
-import EngTeacher.repo.UserRepository;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
@@ -34,8 +35,30 @@ public class ChatService {
     private final ChatMemory chatMemory;
     private final UserService userService;
     private final SessionService sessionService;
+    private final Tracer tracer;
 
     public ChatMessageResponseDto processMessage(User user, Session session, String userMessage) {
+        Span span = tracer.nextSpan().name("user-interaction");
+        try (Tracer.SpanInScope ws = tracer.withSpan(span.start())) {
+            span.tag("langfuse.user.id", user.getId());
+            span.tag("langfuse.session.id", session.getId());
+            span.tag("langfuse.observation.input", userMessage);
+
+            ChatMessageResponseDto result = execute(user, session, userMessage);
+
+            span.tag("langfuse.observation.output", result.getAgentResponse());
+            return result;
+        } catch (Exception e) {
+            span.error(e);
+            span.tag("error", true);
+            span.tag("error.message", e.getMessage());
+            throw e;
+        } finally {
+            span.end();
+        }
+    }
+
+    private ChatMessageResponseDto execute(User user, Session session, String userMessage) {
 
         String conversationId = session.getId();
 
@@ -45,7 +68,7 @@ public class ChatService {
                 .build();
 
         List<Message> agentLoopMemory = new ArrayList<>(chatMemory.get(conversationId));
-        SystemMessage systemMessage = new SystemMessage(buildSystemPrompt(user.getId(), session));
+        SystemMessage systemMessage = new SystemMessage(buildSystemPrompt(session));
         UserMessage userMsg = new UserMessage(userMessage);
         agentLoopMemory.addAll(List.of(systemMessage, userMsg));
 
@@ -55,7 +78,7 @@ public class ChatService {
         while (chatResponse.hasToolCalls()) {
             ToolExecutionResult toolResult = toolCallingManager.executeToolCalls(prompt, chatResponse);
             // ChatMemory cant store messages from TOOLS. Spring said, it is gonna be fixed.
-            agentLoopMemory = new ArrayList<>(toolResult.conversationHistory());
+            agentLoopMemory.addAll(toolResult.conversationHistory());
 
             prompt = new Prompt(agentLoopMemory, chatOptions);
             chatResponse = chatModel.call(prompt);
@@ -75,54 +98,33 @@ public class ChatService {
                 .build();
     }
 
-    private String buildSystemPrompt(String userId, Session session) {
+    private String buildSystemPrompt(Session session) {
         String exercisesFormatted = formatExercises(session.getExercises());
 
         return """
-                You are a friendly language learning assistant helping users practice English phrases through exercises.
+                You are a language learning assistant. Help the user practice exact English phrases through exercises.
                 
-                CONTEXT:
-                User ID: %s
-                Current exercises:
+                Exercises:
                 %s
                 
-                YOUR WORKFLOW:
-                
-                1. EVALUATE exercise attempts:
-                   - Correct usage: congratulate the user and call the tool to mark the exercise as done.
-                   - Incorrect usage: do NOT reveal the target phrase or the correct answer. Call the tool to mark it incorrect and present the new generated
-                question.
-                   - If the user explicitly asks for the answer: reveal it, explain it briefly, then present the new generated question for this phrase.
-                
-                2. ANSWER questions directly:
-                   - If the user asks about grammar or phrase meaning, answer without calling any tool.
-                
-                3. RESPOND naturally and friendly after each tool call, incorporating the result into the conversation. Try to not repeat yourself.
-                
-                4. Skip exercises that are already marked as done.
+                RULES:
+                - Mark correct ONLY if the user's sentence contains the EXACT target phrase. Minor tense/grammar adaptation is fine; synonyms are not.
+                - If the user uses a synonym or paraphrase: do not mark correct, acknowledge the similarity, give a hint toward the exact phrase, repeat the question.
+                - If incorrect: do not reveal the answer. Give a contextual hint, mark incorrect, present the question again.
+                - If the user asks for the answer: reveal it with a brief explanation, then continue.
+                - Grammar/meaning questions: answer directly, no tool call.
+                - Never include tool call syntax or JSON in your response.
                 
                 EXAMPLES:
-                
-                User: "I went to the store to buy a tin of tuna for dinner."
-                → [mark correct]
-                → "Perfect! You used 'a tin of' correctly. I've marked that exercise as done."
-                
-                User: "What does 'omit' mean?"
-                → [no tool call]
-                → "'Omit' means to leave out or exclude something."
-                
-                User: "I would ask my colleague to repeat herself."
-                → [mark incorrect]
-                → "Good effort, but that's not quite right. Let's try again: 'A colleague says your idea is too complex. You reply: ... that?'"
-                
-                User: "I don't understand. Can you tell me the correct answer?"
-                → [mark incorrect]
-                → "Of course! The answer is 'What do you mean by that?' — used when you want someone to clarify what they said. Here's your next question for this phrase: ..."
-                """.formatted(userId, exercisesFormatted);
+                "I bought a can of tuna." (target: 'a tin of') → "Close! Same idea, but we need a different expression. Hint: it's the British English version. Try: 'I opened ... beans.'"
+                "She will lead the project." (target: 'be in charge of') → "Good, but we need a specific two-word phrase meaning to be responsible for something. Try again: 'Who will ... the project?'"
+                "I went to buy a tin of tuna." → [mark correct] "Nice work! 'A tin of' — marked as done."
+                """.formatted(exercisesFormatted);
     }
 
     private String formatExercises(List<Exercise> exercises) {
         return exercises.stream()
+                .filter(exercise -> !exercise.isDone())
                 .map(ex -> String.format(
                         "ID: %s | Phrase: \"%s\" | Question: \"%s\"",
                         ex.getId(),

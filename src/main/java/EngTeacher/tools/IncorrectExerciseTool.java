@@ -61,10 +61,6 @@ public class IncorrectExerciseTool implements ToolCallback {
                       "items": {
                         "type": "object",
                         "properties": {
-                          "userId": {
-                            "type": "string",
-                            "description": "ID of the user"
-                          },
                           "exerciseId": {
                             "type": "string",
                             "description": "ID of the exercise that was answered incorrectly"
@@ -74,7 +70,7 @@ public class IncorrectExerciseTool implements ToolCallback {
                             "description": "New question to replace the current one for this exercise"
                           }
                         },
-                        "required": ["userId", "exerciseId", "newQuestion"]
+                        "required": ["exerciseId", "newQuestion"]
                       }
                     }
                   },

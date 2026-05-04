@@ -38,7 +38,10 @@ public class AuthController {
 
         User user = userService.createUser(request.getName(), request.getPassword());
         String token = jwtService.generateToken(user.getId());
-        return AuthResponse.of(token, user);
+        return AuthResponse.builder()
+                .token(token)
+                .user(user)
+                .build();
     }
 
     @PostMapping("/login")
@@ -51,6 +54,9 @@ public class AuthController {
         }
 
         String token = jwtService.generateToken(user.getId());
-        return AuthResponse.of(token, user);
+        return AuthResponse.builder()
+                .token(token)
+                .user(user)
+                .build();
     }
 }

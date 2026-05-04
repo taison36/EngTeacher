@@ -61,16 +61,12 @@ public class CompleteExerciseTool implements ToolCallback {
                       "items": {
                         "type": "object",
                         "properties": {
-                          "userId": {
-                            "type": "string",
-                            "description": "ID of the user"
-                          },
                           "exerciseId": {
                             "type": "string",
                             "description": "ID of the exercise"
                           }
                         },
-                        "required": ["userId", "exerciseId"]
+                        "required": ["exerciseId"]
                       }
                     }
                   },

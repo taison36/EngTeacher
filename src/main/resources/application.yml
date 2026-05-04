@@ -9,6 +9,10 @@ spring:
         options:
           model: llama-3.3-70b-versatile
           temperature: 0.7
+    chat:
+      observations:
+        log-prompt: true
+        log-completion: true
   mongodb:
     uri: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@${MONGO_URL}/${MONGO_DATABASE}?authSource=admin
   threads:
@@ -18,3 +22,31 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 86400000
+
+logging:
+  level:
+    io.opentelemetry: DEBUG
+    io.micrometer.tracing: DEBUG
+    io.opentelemetry.exporter: TRACE
+    io.opentelemetry.sdk.trace: DEBUG
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      enabled: true
+  observations:
+    annotations:
+      enabled: true
+      enable:
+        "http.server.requests": false # Suppress duplicate Micrometer HTTP server spans
+        "http.client.requests": false # Suppress duplicate Micrometer HTTP client spans
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+          headers:
+            Authorization: "Basic ${LANGFUSE_AUTH_HEADER}"
+            x-langfuse-ingestion-version: "4"

@@ -18,39 +18,31 @@ class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/{userId}")
-    public User getUser(@PathVariable final String userId) {
-        AuthUtils.requireSelf(userId);
-        return userService.getUser(userId);
+    @GetMapping
+    public User getUser() {
+        return userService.getUser(AuthUtils.currentUserId());
     }
 
-    @PostMapping("/{userId}/phrases")
-    public User addPhrases(@PathVariable final String userId,
-                           @RequestBody final List<AddPhraseDto> phrases) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
+    @PostMapping("/phrases")
+    public User addPhrases(@RequestBody final List<AddPhraseDto> phrases) {
+        User user = userService.getUser(AuthUtils.currentUserId());
         return userService.addPhrases(user, phrases);
     }
 
-    @GetMapping("/{userId}/phrases")
-    public List<Phrase> getPhrases(@PathVariable final String userId) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
-        return user.getPhrases();
+    @GetMapping("/phrases")
+    public List<Phrase> getPhrases() {
+        return userService.getUser(AuthUtils.currentUserId()).getPhrases();
     }
 
-    @GetMapping("/{userId}/settings")
-    public UserSettings getSettings(@PathVariable final String userId) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
+    @GetMapping("/settings")
+    public UserSettings getSettings() {
+        User user = userService.getUser(AuthUtils.currentUserId());
         return userService.getSettings(user);
     }
 
-    @PutMapping("/{userId}/settings")
-    public UserSettings updateSettings(@PathVariable final String userId,
-                                       @RequestBody final UserSettings settings) {
-        AuthUtils.requireSelf(userId);
-        User user = userService.getUser(userId);
+    @PutMapping("/settings")
+    public UserSettings updateSettings(@RequestBody final UserSettings settings) {
+        User user = userService.getUser(AuthUtils.currentUserId());
         return userService.updateSettings(user, settings);
     }
 }

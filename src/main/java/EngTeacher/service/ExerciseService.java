@@ -4,6 +4,7 @@ import EngTeacher.dto.agent.ExerciseAttempt;
 import EngTeacher.model.Exercise;
 import EngTeacher.model.User;
 import EngTeacher.model.UserSettings;
+import EngTeacher.security.AuthUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,7 @@ public class ExerciseService {
 
     public void markCorrect(List<ExerciseAttempt.Correct> corrects) {
         if (corrects.isEmpty())  return;
-        User user = userService.getUser(corrects.getFirst().userId());
+        User user = userService.getUser(AuthUtils.currentUserId());
         corrects.forEach(correct -> {
             findExercise(user, correct.exerciseId()).ifPresent(exercise -> {
                 exercise.setDone(true);
@@ -30,7 +31,7 @@ public class ExerciseService {
 
     public void markIncorrect(List<ExerciseAttempt.Incorrect> incorrects) {
         if (incorrects.isEmpty())  return;
-        User user = userService.getUser(incorrects.getFirst().userId());
+        User user = userService.getUser(AuthUtils.currentUserId());
         incorrects.forEach(incorrect -> {
             findExercise(user, incorrect.exerciseId()).ifPresent(exercise -> {
                 exercise.setQuestion(incorrect.newQuestion());

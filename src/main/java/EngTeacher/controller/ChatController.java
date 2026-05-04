@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/chat/")
+@RequestMapping("/api/chat")
 @RequiredArgsConstructor
 public class ChatController {
 
@@ -21,10 +21,9 @@ public class ChatController {
     private final SessionService sessionService;
 
     @PostMapping("/message")
-    public ChatMessageResponseDto processMessage(@RequestBody final ChatMessageRequestDto chatMessageRequestDto) {
-        AuthUtils.requireSelf(chatMessageRequestDto.getUserId());
-        User user = userService.getUser(chatMessageRequestDto.getUserId());
-        Session session = sessionService.getSession(user, chatMessageRequestDto.getSessionId());
-        return chatService.processMessage(user, session, chatMessageRequestDto.getMessage());
+    public ChatMessageResponseDto processMessage(@RequestBody final ChatMessageRequestDto request) {
+        User user = userService.getUser(AuthUtils.currentUserId());
+        Session session = sessionService.getSession(user, request.getSessionId());
+        return chatService.processMessage(user, session, request.getMessage());
     }
 }
